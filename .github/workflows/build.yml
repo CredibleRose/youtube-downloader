@@ -1,0 +1,116 @@
+name: Build
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch: {}
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Download ffmpeg
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri "https://github.com/BtbN/FFmpeg-Builds/releases/latest/download/ffmpeg-master-latest-win64-gpl.zip" -OutFile ffmpeg.zip
+          Expand-Archive ffmpeg.zip -DestinationPath ffmpeg_extracted
+          $bin = Get-ChildItem -Path ffmpeg_extracted -Recurse -Filter ffmpeg.exe | Select-Object -First 1
+          Copy-Item $bin.FullName -Destination ffmpeg.exe
+
+      - name: Download Deno
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri "https://github.com/denoland/deno/releases/latest/download/deno-x86_64-pc-windows-msvc.zip" -OutFile deno.zip
+          Expand-Archive deno.zip -DestinationPath .
+
+      - name: Build with PyInstaller
+        run: >
+          pyinstaller --noconfirm --windowed --onedir --name YouTubeDownloader
+          --add-binary "ffmpeg.exe;."
+          --add-binary "deno.exe;."
+          main.py
+
+      - name: Package
+        shell: pwsh
+        run: Compress-Archive -Path "dist/YouTubeDownloader/*" -DestinationPath "YouTubeDownloader-windows.zip"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: YouTubeDownloader-windows
+          path: YouTubeDownloader-windows.zip
+
+  build-macos:
+    strategy:
+      matrix:
+        include:
+          - runner: macos-14
+            arch: arm64
+            deno_target: aarch64-apple-darwin
+          - runner: macos-13
+            arch: intel
+            deno_target: x86_64-apple-darwin
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Install ffmpeg
+        run: brew install ffmpeg
+
+      - name: Download Deno
+        run: |
+          curl -L -o deno.zip "https://github.com/denoland/deno/releases/latest/download/deno-${{ matrix.deno_target }}.zip"
+          unzip -o deno.zip
+          chmod +x deno
+
+      - name: Build with PyInstaller
+        run: |
+          pyinstaller --noconfirm --windowed --onedir --name "YouTube Downloader" \
+            --add-binary "$(which ffmpeg):." \
+            --add-binary "./deno:." \
+            main.py
+
+      - name: Package
+        run: |
+          cd dist
+          zip -r "../YouTubeDownloader-macos-${{ matrix.arch }}.zip" "YouTube Downloader.app"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: YouTubeDownloader-macos-${{ matrix.arch }}
+          path: YouTubeDownloader-macos-${{ matrix.arch }}.zip
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [build-windows, build-macos]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*.zip
