@@ -58,9 +58,6 @@ jobs:
           - runner: macos-14
             arch: arm64
             deno_target: aarch64-apple-darwin
-          - runner: macos-13
-            arch: intel
-            deno_target: x86_64-apple-darwin
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4

@@ -12,8 +12,7 @@ Deno уже вшиты) появляются в разделе **Releases** ре
 
 - **Windows**: скачайте `YouTubeDownloader-windows.zip`, распакуйте, запустите
   `YouTubeDownloader.exe`.
-- **Mac (Apple Silicon)**: скачайте `YouTubeDownloader-macos-arm64.zip`.
-- **Mac (Intel)**: скачайте `YouTubeDownloader-macos-intel.zip`.
+- **Mac (Apple Silicon — M1/M2/M3/M4)**: скачайте `YouTubeDownloader-macos-arm64.zip`.
 
   Распакуйте и перетащите `YouTube Downloader.app` в `Applications`. Так как
   приложение не подписано сертификатом Apple Developer, при первом запуске
