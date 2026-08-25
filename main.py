@@ -267,7 +267,7 @@ class DownloaderApp:
         if FFMPEG_PATH:
             opts["ffmpeg_location"] = FFMPEG_PATH
         if DENO_PATH:
-            opts["js_runtimes"] = [f"deno:{DENO_PATH}"]
+            opts["js_runtimes"] = {"deno": {"path": DENO_PATH}}
 
         browser = self.browser_var.get()
         if browser in BROWSER_KEYS:
